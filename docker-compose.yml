@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  backend:
+    image: faceup-api
+    build:
+      context: ./faceup-api
+      dockerfile: dockerfile
+    volumes:
+      - ./faceup-api:/app
+    command: >
+      sh -c "
+      npm install && 
+      npx prisma migrate deploy && 
+      npm run start:dev
+      "
+    ports:
+      - '3001:3001' 
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?schema=public
+    depends_on:
+      - db
+
+  frontend:
+    image: faceup-app
+    build:
+      context: ./faceup-app
+      dockerfile: dockerfile
+    volumes:
+      - ./faceup-app:/app
+    command: npm run dev
+    ports:
+      - '3000:3000' 
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001  
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_DB=postgres            
+      - POSTGRES_USER=postgres             
+      - POSTGRES_PASSWORD=postgres        
+    ports:
+      - '5432:5432'  
+    volumes:
+      - db_data:/var/lib/postgresql/data   
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  db_data: 
